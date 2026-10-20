@@ -3,14 +3,36 @@ import Landing from './components/Landing';
 import Login from './components/Login';
 import Register from './components/Register';
 import Transactions from './components/Transactions';
+import { ForgotPassword, ResetPassword } from './components/PasswordRecovery';
+import { removeStorage } from './utils/storage';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000; // 14 minutes
 
+function readResetLink() {
+  const [route, query = ''] = window.location.hash.slice(1).split('?');
+  return route === 'reset-password' ? new URLSearchParams(query).get('token') || '' : null;
+}
+
 function App() {
-  const [page, setPage] = useState('landing');
+  const [resetToken, setResetToken] = useState(readResetLink);
+  const [page, setPage] = useState(() => resetToken === null ? 'landing' : 'reset-password');
   const [accessToken, setAccessToken] = useState(null);
   const refreshTimer = useRef(null);
+
+  useEffect(() => {
+    const captureResetLink = () => {
+      const token = readResetLink();
+      if (token === null) return;
+      setResetToken(token);
+      setPage('reset-password');
+      // Keep the recovery secret out of the address bar and subsequent links.
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    };
+    captureResetLink();
+    window.addEventListener('hashchange', captureResetLink);
+    return () => window.removeEventListener('hashchange', captureResetLink);
+  }, []);
 
   const handleLoginSuccess = (token) => {
     setAccessToken(token);
@@ -25,7 +47,7 @@ function App() {
     }
     clearInterval(refreshTimer.current);
     setAccessToken(null);
-    localStorage.removeItem('accessToken');
+    removeStorage('accessToken');
     setPage('landing');
   };
 
@@ -38,7 +60,6 @@ function App() {
         const data = await res.json();
         if (data.ok) {
           setAccessToken(data.accessToken);
-          localStorage.setItem('accessToken', data.accessToken);
         } else {
           // Refresh token invalid — send user back to landing
           setAccessToken(null);
@@ -52,6 +73,22 @@ function App() {
     refreshTimer.current = setInterval(refresh, REFRESH_INTERVAL_MS);
     return () => clearInterval(refreshTimer.current);
   }, [accessToken]);
+
+  const showLogin = () => {
+    setResetToken(null);
+    setPage('login');
+  };
+
+  if (page === 'forgot-password') {
+    return <ForgotPassword onBack={showLogin} />;
+  }
+
+  if (page === 'reset-password') {
+    return <ResetPassword key={resetToken} token={resetToken} onBack={showLogin} onRequestNewLink={() => {
+      setResetToken(null);
+      setPage('forgot-password');
+    }} />;
+  }
   
   if (page === 'transactions') {
     return <Transactions accessToken={accessToken} onLogout={handleLogout} />;
@@ -67,6 +104,7 @@ function App() {
         onSwitch={() => setPage('register')}
         onBack={() => setPage('landing')}
         onSuccess={handleLoginSuccess}
+        onForgotPassword={() => setPage('forgot-password')}
       />
     );
   }

@@ -53,10 +53,16 @@ app.get('/', (req, res) => {
 });*/
 
 app.use((err, req, res, next) => {
+    if (res.headersSent) return next(err);
     const status = err.statusCode || 500;
+    if (status >= 500) console.error('Request failed:', req.method, req.path, err.name || 'Error');
     res.status(status).json({
-      success: false,
-      message: err.message || "Internal Server Error",
+      ok: false,
+      message: status >= 500
+        ? 'The server could not complete this request. Please try again shortly.'
+        : err.type === 'entity.parse.failed'
+          ? 'The request body must be valid JSON.'
+          : err.message || 'The request could not be completed.',
     });
   });
 

@@ -1,49 +1,40 @@
-// middleware.js
 const Transaction = require('./models/Transaction');
+const User = require('./models/user');
 const jwt = require('jsonwebtoken');
-// For EJS pages (redirects)
-/*module.exports.isLoggedInPage = (req, res, next) => {
-    if (!req.isAuthenticated || !req.isAuthenticated()) {
-      return res.redirect("/login");
-    }
-    next();
-  };*/
-  
-  // For React/API (returns JSON)
-  /*module.exports.isLoggedInAPI = (req, res, next) => {
-    if (!req.isAuthenticated || !req.isAuthenticated()) {
-      return res.status(401).json({ ok: false, message: "Unauthorized" });
-    }
-    next();
-  };*/
 
-  module.exports.isLoggedInAPI = (req,res,next) => {
-    const authHeader = req.headers['authorization'];
-    if(!authHeader || ! authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ok:false, message: "Unauthorized"});
+module.exports.isLoggedInAPI = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ ok: false, message: 'Unauthorized' });
+  }
+  let decoded;
+  try {
+    decoded = jwt.verify(authHeader.slice(7), process.env.ACCESS_TOKEN_SECRET);
+    if (!decoded || !/^[a-f\d]{24}$/i.test(decoded.userId)) throw new Error('Invalid user');
+  } catch {
+    return res.status(401).json({ ok: false, message: 'Invalid or expired token' });
+  }
+  try {
+    const user = await User.findById(decoded.userId).select('tokenVersion').lean();
+    if (!user || (decoded.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
+      return res.status(401).json({ ok: false, message: 'Your session has expired. Sign in again.' });
     }
+    req.user = { _id: user._id };
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+};
 
-    const token = authHeader.split(' ')[1];
-
-    try{
-      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-
-      req.user = { _id: decoded.userId};
-      next(); 
-    } catch(e) {
-      return res.status(401).json({ok: false, message: " Invalid or expired token"});
+module.exports.isOwner = async (req, res, next) => {
+  try {
+    const transaction = await Transaction.findById(req.params.id);
+    if (!transaction) return res.status(404).json({ ok: false, message: 'Not Found' });
+    if (!transaction.owner.equals(req.user._id)) {
+      return res.status(403).json({ ok: false, message: 'Forbidden' });
     }
-  };
-  
-  module.exports.isOwner = async(req,res,next) => {
-    try{
-    const transactions = await Transaction.findById(req.params.id);
-    if(!transactions) return res.status(404).json({ok: false, message: "Not Found"});
-      if(!transactions.owner.equals(req.user._id)){
-      return res.status(403).json({ok: false, message: "forbidden"})
-    }
-    next();
-  } catch(e) {
-    next(e);
-  } 
-}
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+};

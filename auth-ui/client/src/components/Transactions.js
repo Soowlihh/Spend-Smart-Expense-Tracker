@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { readStorage, writeStorage } from '../utils/storage';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 const TODAY = new Date().toISOString().split('T')[0];
@@ -17,19 +18,19 @@ export default function Transactions({ accessToken, onLogout }) {
   const [saving, setSaving]             = useState(false);
   const [deleteId, setDeleteId]         = useState(null);
 
-  // Monthly budget — editable, persisted to localStorage
+  // Keep budget editing usable even when browser storage is unavailable.
   const [monthlyBudget, setMonthlyBudget] = useState(() => {
-    const v = localStorage.getItem('spendsmart_budget');
-    return v ? parseFloat(v) : 1000;
+    const savedBudget = Number(readStorage('spendsmart_budget'));
+    return Number.isFinite(savedBudget) && savedBudget > 0 ? savedBudget : 1000;
   });
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetInput, setBudgetInput]     = useState('');
 
   const saveBudget = () => {
-    const v = parseFloat(budgetInput);
-    if (!isNaN(v) && v > 0) {
+    const v = Number(budgetInput);
+    if (Number.isFinite(v) && v > 0) {
       setMonthlyBudget(v);
-      localStorage.setItem('spendsmart_budget', String(v));
+      writeStorage('spendsmart_budget', String(v));
     }
     setEditingBudget(false);
   };
