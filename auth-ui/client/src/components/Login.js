@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
-export default function Login({ onSwitch, onBack, onSuccess }) {
+export default function Login({ onSwitch, onBack, onSuccess, onForgotPassword }) {
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,21 +14,48 @@ export default function Login({ onSwitch, onBack, onSuccess }) {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setError(data.message || 'Login failed');
-      } else {
-        localStorage.setItem('accessToken', data.accessToken);
-        onSuccess(data.accessToken);
+      let res;
+      try {
+        res = await fetch(`${API}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(form),
+        });
+      } catch {
+        setError('Could not connect to the sign-in service. Please try again shortly.');
+        return;
       }
-    } catch {
-      setError('Something went wrong. Try again.');
+
+      const unavailable = 'The sign-in service is temporarily unavailable. Please try again shortly.';
+      const unexpected = 'The sign-in service returned an unexpected response. Please try again.';
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        setError(res.status >= 500 ? unavailable : unexpected);
+        return;
+      }
+
+      if (!res.ok) {
+        setError(res.status >= 500 ? unavailable : (
+          typeof data?.message === 'string' && data.message ? data.message : 'Sign in failed. Please try again.'
+        ));
+        return;
+      }
+
+      if (data?.ok === false) {
+        setError(typeof data.message === 'string' && data.message ? data.message : 'Sign in failed. Please try again.');
+        return;
+      }
+
+      if (data?.ok !== true || typeof data.accessToken !== 'string' || !data.accessToken.trim()) {
+        setError(unexpected);
+        return;
+      }
+
+      // Authentication succeeds in memory; optional browser storage cannot block it.
+      onSuccess(data.accessToken);
     } finally {
       setLoading(false);
     }
@@ -94,7 +121,7 @@ export default function Login({ onSwitch, onBack, onSuccess }) {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3">
+              <div role="alert" className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3">
                 {error}
               </div>
             )}
@@ -107,6 +134,16 @@ export default function Login({ onSwitch, onBack, onSuccess }) {
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
+
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={onForgotPassword}
+              className="text-indigo-400 text-sm font-medium hover:text-indigo-300 transition-colors"
+            >
+              Forgot password?
+            </button>
+          </div>
 
           <p className="text-center text-sm text-slate-500 mt-7">
             Don't have an account?{' '}

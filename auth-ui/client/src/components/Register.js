@@ -16,20 +16,36 @@ export default function Register({ onSwitch, onBack, onSuccess }) {
     setSuccess('');
     setLoading(true);
     try {
-      const res = await fetch(`${API}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setError(data.message || 'Registration failed');
-      } else {
+      let res;
+      try {
+        res = await fetch(`${API}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
+      } catch {
+        setError('Could not connect to the registration service. Please try again shortly.');
+        return;
+      }
+      if (res.status >= 500) {
+        setError('Registration is temporarily unavailable. Please try again shortly.');
+        return;
+      }
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        setError('The registration service returned an unexpected response. Please try again.');
+        return;
+      }
+      if (!res.ok || data?.ok === false) {
+        setError(typeof data?.message === 'string' && data.message ? data.message : 'Registration failed. Please try again.');
+      } else if (data?.ok === true) {
         setSuccess('Account created! Redirecting to sign in…');
         setTimeout(() => onSwitch(), 1500);
+      } else {
+        setError('The registration service returned an unexpected response. Please try again.');
       }
-    } catch {
-      setError('Something went wrong. Try again.');
     } finally {
       setLoading(false);
     }
@@ -99,6 +115,9 @@ export default function Register({ onSwitch, onBack, onSuccess }) {
               <input
                 id="register-password"
                 type="password"
+                minLength={12}
+                maxLength={128}
+                autoComplete="new-password"
                 name="password"
                 value={form.password}
                 onChange={handleChange}
@@ -106,15 +125,16 @@ export default function Register({ onSwitch, onBack, onSuccess }) {
                 placeholder="••••••••"
                 className="w-full bg-slate-800 border border-white/10 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
+              <p className="text-xs text-slate-500 mt-1">Use 12–128 characters.</p>
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3">
+              <div role="alert" className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3">
                 {error}
               </div>
             )}
             {success && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-xl px-4 py-3">
+              <div role="status" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-xl px-4 py-3">
                 {success}
               </div>
             )}

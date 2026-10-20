@@ -10,6 +10,7 @@ A full-stack expense tracker built with React, Express, and MongoDB. Record inco
 - **Spending dashboard:** monthly expenses, a seven-day spending chart, and recent transactions.
 - **Monthly budget:** set a budget and see spending against it; the budget is stored in the browser.
 - **Account access:** registration, login, JWT access tokens, and refresh tokens in HTTP-only cookies.
+- **Password recovery:** request an expiring email link, choose a new password, and invalidate existing sessions. Requires a configured email provider.
 - **Per-user data access:** authenticated users can access only their own transactions.
 - **API filtering:** filter records by type, date, and amount; sort by date or amount.
 
@@ -43,10 +44,12 @@ Follow the [setup guide](docs/SETUP.md) to configure the two environment files a
 
 ## Tests
 
-| Suite | Cases | What it checks |
-| --- | ---: | --- |
-| [API integration](tests/api.test.js) | 28 | Authentication, token refresh, per-user access, transaction operations, filtering, and input validation |
-| [React UI](auth-ui/client/src/App.test.js) | 4 | Navigation, registration, successful login, and rejected login using mocked API responses |
+| Suite | What it checks |
+| --- | --- |
+| [API integration](tests/api.test.js) | Authentication, token refresh, per-user access, transaction operations, filtering, and input validation |
+| [Password recovery API](tests/passwordReset.test.js) | Expiry, single use, concurrent reset attempts, delivery failures, and session invalidation |
+| [React app](auth-ui/client/src/App.test.js) | Navigation, registration, sign-in, storage restrictions, and clear failure messages with mocked API responses |
+| [Recovery forms](auth-ui/client/src/components/PasswordRecovery.test.js) | Reset requests, password confirmation, recovery responses, and returning to normal sign-in |
 
 ```sh
 # From the repository root
@@ -65,5 +68,7 @@ The ownership tests create two users and verify that one cannot list, read, upda
 ## Current limitations
 
 - Monthly budgets are browser-local and are not synchronized to an account or across devices.
-- Logout clears the refresh cookie; issued tokens remain valid until expiry. Refresh-token rotation and server-side revocation are not implemented.
+- Logout clears the refresh cookie; issued tokens remain valid until expiry. A password reset invalidates previously issued access and refresh tokens. Refresh-token rotation is not implemented.
+- Password recovery requires an email provider and verified sender; it reports unavailability when they are not configured.
+- Recovery emails are queued in memory; pending delivery can be lost if the server restarts.
 - Health endpoints report HTTP responsiveness rather than database readiness.
