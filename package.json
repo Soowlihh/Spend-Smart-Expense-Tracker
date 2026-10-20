@@ -1,10 +1,12 @@
 {
   "name": "expensetracker",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "SpendSmart: a React expense tracker with an Express API, MongoDB persistence and per-user transaction access.",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch"
   },
   "keywords": [],
   "author": "",
@@ -24,5 +26,13 @@
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "passport-local-mongoose": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "mongodb-memory-server": "^10.4.3",
+    "supertest": "^7.3.1"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

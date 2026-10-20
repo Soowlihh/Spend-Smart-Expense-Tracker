@@ -67,8 +67,9 @@ export default function Register({ onSwitch, onBack, onSuccess }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+              <label htmlFor="register-email" className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
               <input
+                id="register-email"
                 type="email"
                 name="email"
                 value={form.email}
@@ -80,8 +81,9 @@ export default function Register({ onSwitch, onBack, onSuccess }) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Username</label>
+              <label htmlFor="register-username" className="block text-xs font-medium text-slate-400 mb-1.5">Username</label>
               <input
+                id="register-username"
                 type="text"
                 name="username"
                 value={form.username}
@@ -93,8 +95,9 @@ export default function Register({ onSwitch, onBack, onSuccess }) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+              <label htmlFor="register-password" className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
               <input
+                id="register-password"
                 type="password"
                 name="password"
                 value={form.password}
