@@ -1,21 +1,12 @@
 require("dotenv").config();
 const express = require('express');
 const mongoose = require('mongoose');
-const path = require('path');
 const transactions = require('./routes/transactions');
 const cookieParser = require('cookie-parser')
 const helmet = require('helmet')
 const cors = require('cors');
 const app = express();
-const port = process.env.PORT || 3000;
-const User = require('./models/user');
 const userRoutes = require('./routes/user');
-const { loginLimiter, registerLimiter, transactionLimiter } = require('./rateLimiter');
-
-
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log('Database Connected'))
-.catch((error) => console.log('Error', error))
 
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3001')
   .split(',')
@@ -69,8 +60,22 @@ app.use((err, req, res, next) => {
     });
   });
 
-  app.listen(port, () => {
-    console.log("Listening on port", port);
-  });
-  
+// Importing the app in tests must not open a port or connect to a real database.
+async function start() {
+  for (const key of ['MONGO_URI', 'ACCESS_TOKEN_SECRET', 'REFRESH_TOKEN_SECRET']) {
+    if (!process.env[key]) throw new Error(`Missing required environment variable: ${key}`);
+  }
+  await mongoose.connect(process.env.MONGO_URI);
+  const port = process.env.PORT || 3000;
+  return app.listen(port, () => console.log('Listening on port', port));
+}
 
+if (require.main === module) {
+  start().catch(async (error) => {
+    console.error('Unable to start server:', error.message);
+    await mongoose.disconnect();
+    process.exitCode = 1;
+  });
+}
+
+module.exports = app;

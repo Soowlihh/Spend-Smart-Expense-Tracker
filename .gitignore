@@ -1,2 +1,8 @@
 .env
-node_modules
+.env.*
+!.env.example
+node_modules/
+coverage/
+auth-ui/client/build/
+.DS_Store
+npm-debug.log*

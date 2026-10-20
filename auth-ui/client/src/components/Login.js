@@ -66,8 +66,9 @@ export default function Login({ onSwitch, onBack, onSuccess }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Username</label>
+              <label htmlFor="login-username" className="block text-xs font-medium text-slate-400 mb-1.5">Username</label>
               <input
+                id="login-username"
                 type="text"
                 name="username"
                 value={form.username}
@@ -79,8 +80,9 @@ export default function Login({ onSwitch, onBack, onSuccess }) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+              <label htmlFor="login-password" className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
               <input
+                id="login-password"
                 type="password"
                 name="password"
                 value={form.password}
